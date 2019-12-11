@@ -1,0 +1,21 @@
+on: [push, pull_request]
+
+name: Latest
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - run: make
+      - name: Cleanup
+        run: |
+          mkdir dist
+          mv main.pdf dist/
+          sudo git clean -fdx -e dist/
+          rm -rf .git
+      - uses: actions/upload-artifact@v1
+        with:
+          name: archive
+          path: .
