@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - run: make
-      - name: cleanup
+      - name: Cleanup
         run: |
           mkdir dist
           mv main.pdf dist/
