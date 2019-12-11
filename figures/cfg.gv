@@ -1,0 +1,134 @@
+\digraph[scale=0.09]{ccccfg}{
+subgraph cluster_main {
+label = main;
+subgraph cluster_10 {
+label = "BasicBlock 10";
+inst_48 [shape=record,fontname=monospace,label="48|LABEL 10"];
+inst_48 -> inst_49;
+inst_49 [shape=record,fontname=monospace,label="49|JUMP 0"];
+}
+inst_49->inst_0;
+subgraph cluster_8 {
+label = "BasicBlock 8";
+inst_20 [shape=record,fontname=monospace,label="20|LABEL 8"];
+inst_20 -> inst_30;
+inst_30 [shape=record,fontname=monospace,label="30|v12 = STACK_ADDR 4 0 "];
+inst_30 -> inst_31;
+inst_31 [shape=record,fontname=monospace,label="31|v13 = STACK_ADDR 4 0 "];
+inst_31 -> inst_32;
+inst_32 [shape=record,fontname=monospace,label="32|v14 = LOAD 4 v13"];
+inst_32 -> inst_33;
+inst_33 [shape=record,fontname=monospace,label="33|v15 = IMM 1"];
+inst_33 -> inst_34;
+inst_34 [shape=record,fontname=monospace,label="34|v16 = BIN + v14, v15"];
+inst_34 -> inst_35;
+inst_35 [shape=record,fontname=monospace,label="35|STORE 4 v12, v16"];
+inst_35 -> inst_36;
+inst_36 [shape=record,fontname=monospace,label="36|JUMP 4"];
+}
+inst_36->inst_7;
+subgraph cluster_7 {
+label = "BasicBlock 7";
+inst_19 [shape=record,fontname=monospace,label="19|LABEL 7"];
+inst_19 -> inst_29;
+inst_29 [shape=record,fontname=monospace,label="29|JUMP 8"];
+}
+inst_29->inst_20;
+subgraph cluster_6 {
+label = "BasicBlock 6";
+inst_18 [shape=record,fontname=monospace,label="18|LABEL 6"];
+inst_18 -> inst_26;
+inst_26 [shape=record,fontname=monospace,label="26|JUMP 4"];
+}
+inst_26->inst_7;
+subgraph cluster_5 {
+label = "BasicBlock 5";
+inst_8 [shape=record,fontname=monospace,label="8|LABEL 5"];
+inst_8 -> inst_45;
+inst_45 [shape=record,fontname=monospace,label="45|v23 = STACK_ADDR 4 0 "];
+inst_45 -> inst_46;
+inst_46 [shape=record,fontname=monospace,label="46|v24 = LOAD 4 v23"];
+inst_46 -> inst_47;
+inst_47 [shape=record,fontname=monospace,label="47|RET v24"];
+}
+inst_47->inst_0;
+subgraph cluster_4 {
+label = "BasicBlock 4";
+inst_7 [shape=record,fontname=monospace,label="7|LABEL 4"];
+inst_7 -> inst_37;
+inst_37 [shape=record,fontname=monospace,label="37|v17 = STACK_ADDR 8 0 "];
+inst_37 -> inst_38;
+inst_38 [shape=record,fontname=monospace,label="38|v18 = IMM 1"];
+inst_38 -> inst_39;
+inst_39 [shape=record,fontname=monospace,label="39|v19 = LOAD 4 v17"];
+inst_39 -> inst_40;
+inst_40 [shape=record,fontname=monospace,label="40|v20 = BIN + v19, v18"];
+inst_40 -> inst_41;
+inst_41 [shape=record,fontname=monospace,label="41|STORE 4 v17, v20"];
+inst_41 -> inst_42;
+inst_42 [shape=record,fontname=monospace,label="42|v21 = IMM 1"];
+inst_42 -> inst_43;
+inst_43 [shape=record,fontname=monospace,label="43|v22 = BIN - v20, v21"];
+inst_43 -> inst_44;
+inst_44 [shape=record,fontname=monospace,label="44|JUMP 2"];
+}
+inst_44->inst_5;
+subgraph cluster_3 {
+label = "BasicBlock 3";
+inst_6 [shape=record,fontname=monospace,label="6|LABEL 3"];
+inst_6 -> inst_21;
+inst_21 [shape=record,fontname=monospace,label="21|v8 = STACK_ADDR 8 0 "];
+inst_21 -> inst_22;
+inst_22 [shape=record,fontname=monospace,label="22|v9 = LOAD 4 v8"];
+inst_22 -> inst_23;
+inst_23 [shape=record,fontname=monospace,label="23|v10 = IMM 3"];
+inst_23 -> inst_24;
+inst_24 [shape=record,fontname=monospace,label="24|v11 = BIN \< v9, v10"];
+inst_24 -> inst_25;
+inst_25 [shape=record,fontname=monospace,label="25|BR 6 7 v11"];
+}
+inst_25->inst_19;
+inst_25->inst_18;
+subgraph cluster_2 {
+label = "BasicBlock 2";
+inst_5 [shape=record,fontname=monospace,label="5|LABEL 2"];
+inst_5 -> inst_13;
+inst_13 [shape=record,fontname=monospace,label="13|v4 = STACK_ADDR 8 0 "];
+inst_13 -> inst_14;
+inst_14 [shape=record,fontname=monospace,label="14|v5 = LOAD 4 v4"];
+inst_14 -> inst_15;
+inst_15 [shape=record,fontname=monospace,label="15|v6 = IMM 10"];
+inst_15 -> inst_16;
+inst_16 [shape=record,fontname=monospace,label="16|v7 = BIN \< v5, v6"];
+inst_16 -> inst_17;
+inst_17 [shape=record,fontname=monospace,label="17|BR 3 5 v7"];
+}
+inst_17->inst_8;
+inst_17->inst_6;
+subgraph cluster_1 {
+label = "BasicBlock 1";
+inst_1 [shape=record,fontname=monospace,label="1|LABEL 1"];
+inst_1 -> inst_2;
+inst_2 [shape=record,fontname=monospace,label="2|v0 = STACK_ADDR 4 0 "];
+inst_2 -> inst_3;
+inst_3 [shape=record,fontname=monospace,label="3|v1 = IMM 0"];
+inst_3 -> inst_4;
+inst_4 [shape=record,fontname=monospace,label="4|STORE 4 v0, v1"];
+inst_4 -> inst_9;
+inst_9 [shape=record,fontname=monospace,label="9|v2 = STACK_ADDR 8 0 "];
+inst_9 -> inst_10;
+inst_10 [shape=record,fontname=monospace,label="10|v3 = IMM 0"];
+inst_10 -> inst_11;
+inst_11 [shape=record,fontname=monospace,label="11|STORE 4 v2, v3"];
+inst_11 -> inst_12;
+inst_12 [shape=record,fontname=monospace,label="12|JUMP 2"];
+}
+inst_12->inst_5;
+subgraph cluster_0 {
+label = "BasicBlock 0";
+inst_0 [shape=record,fontname=monospace,label="0|LABEL 0"];
+inst_0 -> inst_50;
+inst_50 [shape=record,fontname=monospace,label="50|RET "];
+}
+}
+}

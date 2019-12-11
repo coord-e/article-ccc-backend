@@ -1,0 +1,72 @@
+\digraph[scale=0.12]{afterarch}{
+subgraph cluster_main {
+label = main;
+subgraph cluster_4 {
+label = "BasicBlock 4";
+inst_15 [shape=record,fontname=monospace,label="15|LABEL 4"];
+inst_15 -> inst_16;
+inst_16 [shape=record,fontname=monospace,label="16|JUMP 0"];
+}
+inst_16->inst_0;
+subgraph cluster_3 {
+label = "BasicBlock 3";
+inst_3 [shape=record,fontname=monospace,label="3|LABEL 3"];
+inst_3 -> inst_18;
+inst_18 [shape=record,fontname=monospace,label="18|f(v8:r12) = MOV v7"];
+inst_18 -> inst_19;
+inst_19 [shape=record,fontname=monospace,label="19|RET f(v8:r12)"];
+}
+inst_19->inst_0;
+subgraph cluster_2 {
+label = "BasicBlock 2";
+inst_2 [shape=record,fontname=monospace,label="2|LABEL 2"];
+inst_2 -> inst_23;
+inst_23 [shape=record,fontname=monospace,label="23|f(v11:r1) = MOV v6"];
+inst_23 -> inst_22;
+inst_22 [shape=record,fontname=monospace,label="22|f(v10:r0) = MOV v3"];
+inst_22 -> inst_21;
+inst_21 [shape=record,fontname=monospace,label="21|f(v9:r12) = CALL v0, f(v10:r0), f(v11:r1)"];
+inst_21 -> inst_20;
+inst_20 [shape=record,fontname=monospace,label="20|v7 = MOV f(v9:r12)"];
+inst_20 -> inst_13;
+inst_13 [shape=record,fontname=monospace,label="13|JUMP 3"];
+}
+inst_13->inst_3;
+subgraph cluster_1 {
+label = "BasicBlock 1";
+inst_1 [shape=record,fontname=monospace,label="1|LABEL 1"];
+inst_1 -> inst_5;
+inst_5 [shape=record,fontname=monospace,label="5|v0 = GLOBAL func"];
+inst_5 -> inst_6;
+inst_6 [shape=record,fontname=monospace,label="6|v1 = IMM 10"];
+inst_6 -> inst_7;
+inst_7 [shape=record,fontname=monospace,label="7|v2 = IMM 2"];
+inst_7 -> inst_24;
+inst_24 [shape=record,fontname=monospace,label="24|f(v12:r12) = MOV v1"];
+inst_24 -> inst_25;
+inst_25 [shape=record,fontname=monospace,label="25|f(v12:r12) = BIN \/ f(v12:r12), v2"];
+inst_25 -> inst_26;
+inst_26 [shape=record,fontname=monospace,label="26|v3 = MOV f(v12:r12)"];
+inst_26 -> inst_9;
+inst_9 [shape=record,fontname=monospace,label="9|v4 = IMM 6"];
+inst_9 -> inst_10;
+inst_10 [shape=record,fontname=monospace,label="10|v5 = IMM 3"];
+inst_10 -> inst_27;
+inst_27 [shape=record,fontname=monospace,label="27|f(v13:r12) = MOV v4"];
+inst_27 -> inst_28;
+inst_28 [shape=record,fontname=monospace,label="28|f(v14:r2) = BIN \% f(v13:r12), v5"];
+inst_28 -> inst_29;
+inst_29 [shape=record,fontname=monospace,label="29|v6 = MOV f(v14:r2)"];
+inst_29 -> inst_12;
+inst_12 [shape=record,fontname=monospace,label="12|JUMP 2"];
+}
+inst_12->inst_2;
+subgraph cluster_0 {
+label = "BasicBlock 0";
+inst_0 [shape=record,fontname=monospace,label="0|LABEL 0"];
+inst_0 -> inst_17;
+inst_17 [shape=record,fontname=monospace,label="17|RET "];
+}
+}
+
+}

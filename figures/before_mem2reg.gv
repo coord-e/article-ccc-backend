@@ -1,0 +1,62 @@
+\digraph[scale=0.3]{beforemem2reg}{
+subgraph cluster_main {
+label = main;
+subgraph cluster_2 {
+label = "BasicBlock 2";
+inst_21 [shape=record,fontname=monospace,label="21|LABEL 2"];
+inst_21 -> inst_22;
+inst_22 [shape=record,fontname=monospace,label="22|JUMP 0"];
+}
+inst_22->inst_0;
+subgraph cluster_1 {
+label = "BasicBlock 1";
+inst_1 [shape=record,fontname=monospace,label="1|LABEL 1"];
+inst_1 -> inst_2;
+inst_2 [shape=record,fontname=monospace,label="2|v0 = STACK_ADDR 4 0 "];
+inst_2 -> inst_3;
+inst_3 [shape=record,fontname=monospace,label="3|v1 = IMM 20"];
+inst_3 -> inst_4;
+inst_4 [shape=record,fontname=monospace,label="4|STORE 4 v0, v1"];
+inst_4 -> inst_5;
+inst_5 [shape=record,fontname=monospace,label="5|v2 = STACK_ADDR 12 0 "];
+inst_5 -> inst_6;
+inst_6 [shape=record,fontname=monospace,label="6|v3 = STACK_ADDR 4 0 "];
+inst_6 -> inst_7;
+inst_7 [shape=record,fontname=monospace,label="7|STORE 8 v2, v3"];
+inst_7 -> inst_8;
+inst_8 [shape=record,fontname=monospace,label="8|v4 = STACK_ADDR 16 0 "];
+inst_8 -> inst_9;
+inst_9 [shape=record,fontname=monospace,label="9|v5 = IMM 10"];
+inst_9 -> inst_10;
+inst_10 [shape=record,fontname=monospace,label="10|v6 = STACK_ADDR 4 0 "];
+inst_10 -> inst_11;
+inst_11 [shape=record,fontname=monospace,label="11|v7 = LOAD 4 v6"];
+inst_11 -> inst_12;
+inst_12 [shape=record,fontname=monospace,label="12|v8 = BIN + v5, v7"];
+inst_12 -> inst_13;
+inst_13 [shape=record,fontname=monospace,label="13|STORE 4 v4, v8"];
+inst_13 -> inst_14;
+inst_14 [shape=record,fontname=monospace,label="14|v9 = STACK_ADDR 12 0 "];
+inst_14 -> inst_15;
+inst_15 [shape=record,fontname=monospace,label="15|v10 = LOAD 8 v9"];
+inst_15 -> inst_16;
+inst_16 [shape=record,fontname=monospace,label="16|v11 = LOAD 4 v10"];
+inst_16 -> inst_17;
+inst_17 [shape=record,fontname=monospace,label="17|v12 = STACK_ADDR 16 0 "];
+inst_17 -> inst_18;
+inst_18 [shape=record,fontname=monospace,label="18|v13 = LOAD 4 v12"];
+inst_18 -> inst_19;
+inst_19 [shape=record,fontname=monospace,label="19|v14 = BIN + v11, v13"];
+inst_19 -> inst_20;
+inst_20 [shape=record,fontname=monospace,label="20|RET v14"];
+}
+inst_20->inst_0;
+subgraph cluster_0 {
+label = "BasicBlock 0";
+inst_0 [shape=record,fontname=monospace,label="0|LABEL 0"];
+inst_0 -> inst_23;
+inst_23 [shape=record,fontname=monospace,label="23|RET "];
+}
+}
+
+}

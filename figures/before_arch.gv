@@ -1,0 +1,56 @@
+\digraph[scale=0.17]{beforearch}{
+subgraph cluster_main {
+label = main;
+subgraph cluster_4 {
+label = "BasicBlock 4";
+inst_15 [shape=record,fontname=monospace,label="15|LABEL 4"];
+inst_15 -> inst_16;
+inst_16 [shape=record,fontname=monospace,label="16|JUMP 0"];
+}
+inst_16->inst_0;
+subgraph cluster_3 {
+label = "BasicBlock 3";
+inst_3 [shape=record,fontname=monospace,label="3|LABEL 3"];
+inst_3 -> inst_14;
+inst_14 [shape=record,fontname=monospace,label="14|RET v7"];
+}
+inst_14->inst_0;
+subgraph cluster_2 {
+label = "BasicBlock 2";
+inst_2 [shape=record,fontname=monospace,label="2|LABEL 2"];
+inst_2 -> inst_4;
+inst_4 [shape=record,fontname=monospace,label="4|v7 = CALL v0, v3, v6"];
+inst_4 -> inst_13;
+inst_13 [shape=record,fontname=monospace,label="13|JUMP 3"];
+}
+inst_13->inst_3;
+subgraph cluster_1 {
+label = "BasicBlock 1";
+inst_1 [shape=record,fontname=monospace,label="1|LABEL 1"];
+inst_1 -> inst_5;
+inst_5 [shape=record,fontname=monospace,label="5|v0 = GLOBAL func"];
+inst_5 -> inst_6;
+inst_6 [shape=record,fontname=monospace,label="6|v1 = IMM 10"];
+inst_6 -> inst_7;
+inst_7 [shape=record,fontname=monospace,label="7|v2 = IMM 2"];
+inst_7 -> inst_8;
+inst_8 [shape=record,fontname=monospace,label="8|v3 = BIN \/ v1, v2"];
+inst_8 -> inst_9;
+inst_9 [shape=record,fontname=monospace,label="9|v4 = IMM 6"];
+inst_9 -> inst_10;
+inst_10 [shape=record,fontname=monospace,label="10|v5 = IMM 3"];
+inst_10 -> inst_11;
+inst_11 [shape=record,fontname=monospace,label="11|v6 = BIN \% v4, v5"];
+inst_11 -> inst_12;
+inst_12 [shape=record,fontname=monospace,label="12|JUMP 2"];
+}
+inst_12->inst_2;
+subgraph cluster_0 {
+label = "BasicBlock 0";
+inst_0 [shape=record,fontname=monospace,label="0|LABEL 0"];
+inst_0 -> inst_17;
+inst_17 [shape=record,fontname=monospace,label="17|RET "];
+}
+}
+
+}

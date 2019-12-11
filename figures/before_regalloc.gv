@@ -1,0 +1,39 @@
+\digraph[scale=0.4]{beforealloc}{
+subgraph cluster_main {
+label = main;
+subgraph cluster_1 {
+label = "BasicBlock 1";
+inst_1 [shape=record,fontname=monospace,label="1|LABEL 1"];
+inst_1 -> inst_2;
+inst_2 [shape=record,fontname=monospace,label="2|v0 = IMM 10"];
+inst_2 -> inst_3;
+inst_3 [shape=record,fontname=monospace,label="3|v1 = IMM 5"];
+inst_3 -> inst_4;
+inst_4 [shape=record,fontname=monospace,label="4|v2 = IMM 3"];
+inst_4 -> inst_11;
+inst_11 [shape=record,fontname=monospace,label="11|f(v5:r12) = MOV v1"];
+inst_11 -> inst_12;
+inst_12 [shape=record,fontname=monospace,label="12|f(v6:r2) = BIN \% f(v5:r12), v2"];
+inst_12 -> inst_13;
+inst_13 [shape=record,fontname=monospace,label="13|v3 = MOV f(v6:r2)"];
+inst_13 -> inst_14;
+inst_14 [shape=record,fontname=monospace,label="14|f(v7:r12) = MOV v0"];
+inst_14 -> inst_15;
+inst_15 [shape=record,fontname=monospace,label="15|f(v7:r12) = BIN \/ f(v7:r12), v3"];
+inst_15 -> inst_16;
+inst_16 [shape=record,fontname=monospace,label="16|v4 = MOV f(v7:r12)"];
+inst_16 -> inst_17;
+inst_17 [shape=record,fontname=monospace,label="17|f(v8:r12) = MOV v4"];
+inst_17 -> inst_18;
+inst_18 [shape=record,fontname=monospace,label="18|RET f(v8:r12)"];
+}
+inst_18->inst_0;
+subgraph cluster_0 {
+label = "BasicBlock 0";
+inst_0 [shape=record,fontname=monospace,label="0|LABEL 0"];
+inst_0 -> inst_10;
+inst_10 [shape=record,fontname=monospace,label="10|RET "];
+}
+}
+
+}
