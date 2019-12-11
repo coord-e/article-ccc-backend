@@ -1,0 +1,27 @@
+on:
+  push:
+    tags: ['*']
+
+name: Release
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - run: make
+      - name: cleanup
+        run: |
+          mkdir dist
+          mv main.pdf dist/
+          git clean -fdx -e dist/
+      - uses: actions/upload-artifact@v1
+        with:
+          name: archive
+          path: .
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: dist/main.pdf
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
