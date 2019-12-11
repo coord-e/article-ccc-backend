@@ -1,0 +1,38 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+ここでは\cref{ccc_arch}で「Target Conversion」と表記されている変換について説明する。
+
+アーキテクチャやABI(ここでは二つをまとめて\textbf{ターゲット}と呼ぶ)によっては、命令がある決まったレジスタを使用することがある。
+例えばx86\_64アーキテクチャ\cite{guide2011intel}において除算命令\texttt{div}は被除数を\texttt{rax}にとり、商を\texttt{rax}に格納する。
+またSystem V ABI\cite{SystemV}において\texttt{call}命令は\texttt{rdi, rsi, rdx, rcx, r8, r9}に引数をとり戻り値を\texttt{rax}を格納する。
+こういった特別に扱われるレジスタをここでは\textbf{特殊レジスタ}と呼ぶ。
+また、x86\_64では\texttt{add, sub}などのいくつかの命令において演算の左辺と演算結果が同じレジスタでなければならないという制約がある。
+
+一方で、cccのIRでは\cref{tb:ccc_isa}からわかる通りオペランドのレジスタに特に制限を設けていない。
+そのため、単純な実装ではコード生成時に適切に\texttt{mov}命令を挿入して決まったレジスタを使うようにすることになる。
+しかし、この方法では特殊レジスタを汎用的に使うことができず、レジスタ割り当てに使えるレジスタの数が制限されてしまう。
+また、一つのIR命令に対応するアセンブリ命令が多くなってしまうと最適化の効果が制限されてしまうことも予想された。
+
+そこで、cccではレジスタ割り当て前にIR上でターゲット特有の変換を行うことでこれらの問題を解決している。
+これはIR上で固定レジスタへの\texttt{MOV}命令を生成することでコード生成時に正しいレジスタが使用されていることを保証しながらIR上で特殊レジスタの使用を表現するものだ。
+こうすることでレジスタ割り当ての時点で特殊レジスタの使用が把握できるため、特殊レジスタが使われていない部分では通常のレジスタとして割り当てに使用できるようになる。
+\cref{ccc_arch_fig}にこの変換の例を示す。関数呼び出しや除算が固定レジスタを使うように変換されているのが見て取れる。
+
+\begin{figure}[h]
+  \begin{minipage}{0.50\hsize}
+    \centering
+    \input{figures/before_arch.gv}
+    \caption*{変換前}
+  \end{minipage}
+  \begin{minipage}{0.50\hsize}
+    \centering
+    \input{figures/after_arch.gv}
+    \caption*{変換後}
+  \end{minipage}
+  \caption{ターゲット固有IRへの変換前後のIRの変化例}
+  \label{ccc_arch_fig}
+\end{figure}
+
+\end{document}

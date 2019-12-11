@@ -1,0 +1,78 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+IRは出力先のネイティブコードに近い構造を持つように設計した。IR内では関数が単位となっており\footnote{翻訳単位に対応するIRは、翻訳単位内で定義された複数の関数IRが集まったものである}、これを\textbf{関数IR}と呼ぶことにする。IRに対する操作も基本的に関数IR単位で行われる。
+関数IRはメタデータを除けばIR命令の列である。IR命令列は\textbf{基本ブロック}(\textit{basic block})に分割されており、各基本ブロックは\textbf{後続節}(\textit{predecessors})と\textbf{先行節}(\textit{successors})の情報を保持している。
+これらの情報から基本ブロックは\textbf{制御フローグラフ}(\textit{Control Flow Graph, CFG})を構成する(\cref{ccc_cfg_fig})。
+
+IR命令はレジスタをオペランドにとる。cccのIR上のレジスタには以下の3つの種類がある。
+\begin{itemize}
+  \item \textbf{仮想レジスタ}(\textit{virtual register})は、IR生成の際に使われる、無限個存在するレジスタ。
+  \item \textbf{物理レジスタ}(\textit{physical register})は、レジスタ割り当てが終わったレジスタ。有限個であり、出力コードのレジスタに一対一で対応している。
+  \item \textbf{固定レジスタ}(\textit{fixed regitser})は、\cref{archconv}の変換で生成される、割り当てられる物理レジスタが事前に決まっている仮想レジスタ。
+\end{itemize}
+
+IRを表す図中では、n番目の仮想レジスタを\texttt{v}$n$、n番目の物理レジスタを\texttt{r}$n$、\texttt{r}$n$に割り当てられる$m$番目の固定レジスタは\texttt{f(v$m$:r$n$)}と表記する。
+
+さて、IR命令の命令セットを\cref{tb:ccc_isa}に示す。
+なお、今後の表やアルゴリズムでは命令の出力オペランドを$rd$、n番目の入力オペランドを$ra[n]$と表記する。
+
+表には記載がないが、これらの他に\texttt{BIN\_IMM}といった片方のオペランドに定数をとる命令や\texttt{BR\_CMP}といった複合命令が実装されている。これらは主にレジスタ上のデータの流れを用いた最適化である\textbf{データフロー最適化}で効率的なアセンブリを出力するために用いている。
+
+IRはASTから生成され、IRの上で最適化やレジスタ割り当てが行われたのちにコード生成パスでx86\_64のアセンブリに変換される。
+
+\begin{figure}[hb]
+  \begin{minipage}{0.50\hsize}
+    \centering
+    \begin{verbatim}
+int main() {
+  int i = 0;
+  for (int j = 0; j < 10; j++) {
+    if (j < 3)
+      continue;
+    i = i + 1;
+  }
+  return i;
+}
+    \end{verbatim}
+    \caption*{元のソースコード}
+  \end{minipage}
+  \begin{minipage}{0.50\hsize}
+    \centering
+    \input{figures/cfg.gv}
+    \caption*{対応するIR}
+  \end{minipage}
+  \caption{cccが出力するIR(CFG)の例}
+  \label{ccc_cfg_fig}
+\end{figure}
+
+\begin{table}[hp]
+  \centering
+  \begin{tabular}{llll}
+    \multicolumn{2}{l}{命令} & 説明 & 効果 \\ \hline\hline
+    \texttt{rd =}&\texttt{MOV ra[0]} & レジスタの代入 & $rd \gets ra[0]$ \\
+    \texttt{rd =}&\texttt{IMM $imm$} & 即値$imm$の代入 & $rd \gets imm$ \\
+    \texttt{rd =}&\texttt{BIN $op$ ra[0] ra[1]} & 二項演算 & $rd \gets ra[0] \mathbin{op} ra[1]$ \\
+    \texttt{rd =}&\texttt{UNA $op$ ra[0]} & 単項演算 & $rd \gets \mathrel{op} ra[0]$ \\
+    \texttt{rd =}&\texttt{ARG $idx$} & $idx$番目の引数の代入 & $rd \gets $ value of $idx$-th argument \\
+    &\texttt{RET ra[0]} & 関数から値を返す & return $ra[0]$ \\
+    &\texttt{RET} & 関数から返る & return $void$ \\
+    \texttt{rd =}&\texttt{SEXT ra[0]} & 整数の符号拡張 & $rd \gets$ extend $ra[0]$ to the size of $rd$ \\
+    \texttt{rd =}&\texttt{TRUNC ra[0]} & 整数の切り詰め & $rd \gets$ trunc $ra[0]$ to the size of $rd$ \\
+    &\texttt{STORE ra[0] ra[1]} & アドレスに値を格納 & $*ra[0] \gets ra[1]$ \\
+    \texttt{rd =}&\texttt{LOAD ra[0]} & アドレスから値をロード & $rd \gets *ra[0]$ \\
+    &\texttt{LABEL $label$} & ラベル & a label named $label$ \\
+    &\texttt{BR ra[0] $then$ $else$} & 値に応じてラベルにジャンプ & if $ra[0]$ jump to $then$ else to $else$ \\
+    &\texttt{JUMP $label$} & 指定されたラベルにジャンプ & unconditionally jump to $label$ \\
+    \texttt{rd =}&\texttt{CALL ra[0] ra[1] ra[n]...} & 関数呼び出し & $rd \gets$ call $ra[0]$ with $ra[n]...$ \\
+    \texttt{rd =}&\texttt{STACK\_ADDR $stack\_idx$} & スタック上の位置のアドレス取得 & $rd \gets $ an address of $stack\_idx$ \\
+    \texttt{rd =}&\texttt{GLOABL\_ADDR $kind$ $name$} & グローバルな名前のアドレス取得 & $rd \gets $ an address of $name$ \\
+    &\texttt{STACK\_STORE $stack\_idx$ ra[0]} & スタックに値を格納 & $*stack\_idx \gets ra[0]$ \\
+    \texttt{rd =}&\texttt{STACK\_LOAD $stack\_idx$} & スタックから値をロード & $rd \gets *stack\_idx$
+  \end{tabular}
+  \caption{cccのIR命令セット(一部)}
+  \label{tb:ccc_isa}
+\end{table}
+
+\end{document}

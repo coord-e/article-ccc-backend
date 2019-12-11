@@ -1,0 +1,30 @@
+on:
+  push:
+    tags: ['*']
+
+name: Release
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    env:
+      PDF_NAME: backend_of_ccc_compiler.pdf
+    steps:
+      - uses: actions/checkout@master
+      - run: make
+      - name: Cleanup
+        run: |
+          mkdir dist
+          mv main.pdf dist/$PDF_NAME
+          sudo git clean -fdx -e dist/
+          rm -rf .git
+      - uses: actions/upload-artifact@v1
+        with:
+          name: archive
+          path: .
+      - uses: softprops/action-gh-release@v1
+        with:
+          files: dist/${{ env.PDF_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,184 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+cccでは出力の実行効率を意識し、入力をレジスタマシンにコンパイルする。
+そのために、\textbf{レジスタ割り当て}(\textit{register allocation})を行う。一般的なプロセッサにおいてレジスタは有限だ。例えばx86\_64においては16本、そのうち汎用的に使えるのは14本しかない。
+すなわち、全ての値をレジスタに保存しておくことはできない。値を保存するレジスタが足りなくなった時に、レジスタの代わりにスタックの領域を使う。これを\textbf{spill}と呼ぶ。
+spillされたレジスタは使用時にスタックから読み込まれ、値の変更時にスタックに書き戻される。
+レジスタへのアクセスはメモリへのアクセスと比べて非常に高速であるため、頻繁にアクセスされる値をレジスタに、そうでない値をメモリに配置することが出力コードの効率向上に繋がる。
+
+一方で最適なレジスタの割り当てを求める問題はNP完全であることが知られている。そこで、コンパイル時間と実行時の効率のバランスが取れたアルゴリズムが考案されてきた。
+そのよく知られた例の一つが、レジスタ割り当てをグラフ彩色問題とみなす方法\cite{chaitin1981register}である。しかしこの方法はコンパイル時間が長くかかるほか、実装が複雑になることが予想されたため今回は採用しなかった。
+
+cccでは、\textbf{linear scan register allocation}を使用した。これはPolettoらによって\cite{poletto1997tcc}で使われたレジスタ割り当てアルゴリズムだ。
+これはグラフ彩色による手法に比べて割り当てにかかる計算量が少なくて済む上に、同程度に効率の良いコードを出力できる。
+
+cccの実装では、まずIR上で\textbf{backward data-flow analysis}\cite{av2009コンパイラ}を行い、仮想レジスタの生存区間を求めたのち、レジスタ割り当てを行う。
+生存区間解析の実装はほぼ\cite{wimmer2004linear}で使われているアルゴリズムの通りである。
+レジスタ割り当てのアルゴリズムは\cite{poletto1999linear}を元にしたが、固定レジスタを扱うために一部変更を加えている。
+実際に使用したアルゴリズムを\cref{algalloc}に示す。
+
+\begin{algorithm}[h]
+\caption{Register allocation}\label{algalloc}
+\begin{algorithmic}[1]
+\Procedure{RegAlloc}{list of IR instructions $insts$, list of intervals $ivs$}
+   \State sort $ivs$ by increasing start point
+   \State \Call{WalkIntervals}{$ivs$}
+   \State assign results in $result$ to every register in $insts$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+このアルゴリズムでは、割り当てに際して三つのグローバルな変数を持っている。
+
+\begin{itemize}
+  \item \texttt{available}は現在利用可能な物理レジスタのリスト\footnote{\texttt{available}と\texttt{active}には先頭と末尾へのポインタを保持した双方向リンクリストを用い、要素の挿入/取得が定数時間で行えるようにしている}で、後に述べる優先度でソートされている。
+  \item \texttt{active}は現在使われている仮想レジスタのリストで、生存区間の終了が遅い順にソートされている。
+  \item \texttt{result}は仮想レジスタから割り当てられた物理レジスタへの写像\footnote{物理レジスタと仮想レジスタには自然数のインデックスがついているので、レジスタからの写像は配列で実装されている}。
+\end{itemize}
+
+これらの変数に対する操作は、\textsc{AllocSpecificReg}(\cref{algallocreg})と\textsc{ReleaseReg}(\cref{algreleasereg})の二つの操作に抽象化されている。
+アルゴリズム本体ではこれら二つの操作とspillを適切な条件で行うことで、割り当てを行なっている。
+また、\texttt{available}は次の条件もとソートされている。(\cref{algcomprio})
+なお、関数呼び出しで保存されないレジスタ\footnote{System V ABIではrax, rdi, r9など}のことを\textbf{scratch register}と呼ぶ。
+
+\begin{enumerate}
+  \item 現在の関数内の固定レジスタで使用されている物理レジスタより、そうでない物理レジスタを優先する。
+  \item 現在の関数が関数呼び出しを含むならば、scratch registerでない物理レジスタを優先する。そうでないならばscratch registerを優先する。
+\end{enumerate}
+
+\textsc{AllocSpecificReg}(\cref{algallocreg})からわかる通り、割り当てる物理レジスタは\texttt{available}の先頭から選ばれる。これにより、\cref{algcomprio}で優先されているものから順に割り当てられる物理レジスタが選出されることになる。
+
+\begin{algorithm}
+\caption{Allocation priority}\label{algcomprio}
+\begin{algorithmic}[1]
+  \Ensure return $true$ if $r1$ is preferred than $r2$
+\Function{ComparePriority}{physical register $r1$, physical register $r2$}
+  \If{$r1$ is used in fixed registers in this function}
+    \State \textbf{return} $false$
+  \EndIf
+  \If{$r2$ is used in fixed registers in this function}
+    \State \textbf{return} $true$
+  \EndIf
+  \If{there are some call instruction in this function}
+    \State \textbf{return} $\mathord{!}is\_scratch[r1] \mathbin{\&} is\_scratch[r2]$
+  \Else
+    \State \textbf{return} $is\_scratch[r1] \mathbin{\&} \mathord{!}is\_scratch[r2]$
+  \EndIf
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+さて、linear scan register allocationは、生存区間に対する一回の走査によって行われる。
+\cref{algwalkintv}に走査部分のアルゴリズムを示す。また、spill関連のアルゴリズムを\cref{algspill}に示す。
+固定レジスタの割り当てでは、必要な物理レジスタがすでに割り当てられていた場合にそれをspillすることで物理レジスタを確保する。また、spillの対象のレジスタを選ぶ際に固定レジスタを避けるようにしている。それ以外はほぼ\cite{poletto1999linear}の通りである。
+
+\cref{ccc_alloc_fig}にレジスタ割り当ての例を示す。全て仮想レジスタが物理レジスタに割り当てられているだけでなく、変換前に固定レジスタだったレジスタは、正しく指定されたレジスタに割り当てられていることが見て取れる。
+
+\begin{figure}[h]
+  \begin{minipage}{0.50\hsize}
+    \centering
+    \input{figures/before_regalloc.gv}
+    \caption*{割り当て前}
+  \end{minipage}
+  \begin{minipage}{0.50\hsize}
+    \centering
+    \input{figures/after_regalloc.gv}
+    \caption*{割り当て後}
+  \end{minipage}
+  \caption{レジスタ割り当て前後のIRの変化例}
+  \label{ccc_alloc_fig}
+\end{figure}
+
+\begin{algorithm}
+\caption{Walking intervals}\label{algwalkintv}
+\begin{algorithmic}[1]
+\Procedure{WalkIntervals}{list of intervals $ivs$}
+   \State $active \gets \{\}$
+   \ForAll{usable physical register $phy$}
+     \State add $phy$ to $available$ \Comment{sorted by \Call{ComparePriority}{}}
+   \EndFor
+   \ForAll{interval $iv$ in $ivs$}
+     \State \Call{ExpireOldIntervals}{$iv$}
+     \If{$iv.reg$ is a virtual register}
+       \If{$available = \{\}$}
+         \State \Call{SpillAtInterval}{$iv$}
+       \Else
+         \State \Call{AllocFreeReg}{$iv.reg$}
+       \EndIf
+     \ElsIf{$iv.reg$ is a fixed register}
+       \If{any virtual register is allocated to $iv.reg.phy\_reg$}
+         \State $v \gets$ virtual register allocated to $iv.reg.phy\_reg$
+         \State \Call{SpillReg}{$v$}
+       \EndIf
+       \State \Call{AllocSpecificReg}{$iv.reg, iv.reg.phy\_reg$}
+     \EndIf
+   \EndFor
+\EndProcedure
+\Procedure{ExpireOldIntervals}{interval $iv$}
+  \ForAll{virtual register $r$ in $active$} \Comment{in order of increasing end point}
+    \State $intv \gets$ interval of $r$
+    \If {$intv.to \ge iv.to$}
+      \State \textbf{return}
+    \EndIf
+    \State \Call{ReleaseReg}{$r$}
+  \EndFor
+\EndProcedure
+\Procedure{AllocFreeReg}{virtual register $reg$}
+  \State $phy \gets$ first register in $available$ \Comment{the most prioritized register is selected here}
+  \State \Call{AllocSpecificReg}{$reg, phy$}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Spilling}\label{algspill}
+\begin{algorithmic}[1]
+\Procedure{SpillAtInterval}{interval $iv$}
+  \State $spill \gets$ last non-fixed register in $active$ \Comment{active register with latest end point is selected here}
+  \State $spill\_intv \gets$ interval of $spill$
+  \If{$spill\_intv.to > iv.to$}
+    \State $r \gets result[spill]$\Comment{physical register allocated to $phy$}
+    \State \Call{SpillReg}{$spill$}
+    \State \Call{AllocSpecificReg}{$spill, r$}
+  \Else
+    \State \Call{SpillReg}{$reg$}
+  \EndIf
+\EndProcedure
+\Procedure{SpillReg}{virtual register $reg$}
+  \If{$reg$ found in $result$}\Comment{if $reg$ is allocated to a physical register}
+    \State \Call{ReleaseReg}{$reg$}
+  \EndIf
+  \State allocate new stack location to $reg$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Allocation of specific register}\label{algallocreg}
+\begin{algorithmic}[1]
+  \Require no virtual register is allocated to $phy$
+  \Ensure $reg$ is allocated to $phy$
+\Procedure{AllocSpecificReg}{virtual register $reg$, physical register $phy$}
+  \State $result[reg] \gets phy$
+  \State remove $phy$ from $available$
+  \State add $reg$ to $active$ \Comment{sorted by increasing end point}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Release of virtual register}\label{algreleasereg}
+\begin{algorithmic}[1]
+  \Require $reg$ is allocated to a physical register
+  \Ensure $reg$ is released
+\Procedure{ReleaseReg}{virtual register $reg$}
+  \State $phy \gets result[reg]$
+  \State remove $reg$ from $active$
+  \State add $phy$ to $available$ \Comment{sorted by \Call{ComparePriority}{}}
+  \EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\end{document}

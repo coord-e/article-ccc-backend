@@ -1,0 +1,135 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+効率の良いコードを出力するため、最適化を行う。
+cccではデッドコード削除やコピー伝播に代表されるデータフロー最適化やAST上の定数畳み込みなどを実装しているが、ここではそれらについては説明しない。
+特にデータフロー最適化について、技術書展8に(もし当選すれば)OtakuAssembly\footnote{\url{https://twitter.com/OtakuAssembly}}で(もし書き切る事ができたら)記事を出すので、ぜひそちらを楽しみにしていてください。
+
+さて、ここでは\texttt{LOAD}/\texttt{STORE}以外の操作を受けていないスタック上の領域をレジスタで置き換える最適化について説明する。
+この最適化パスを\textbf{mem2reg}と名付けた。\footnote{LLVMに同じような名前の最適化パスがあり、実際それから名前は着想を得たが、最適化の内容については関連はないものとする}
+mem2regで使用および実装したアルゴリズムを\cref{algmem2reg}に示す。
+
+\begin{algorithm}[h]
+\caption{Naive mem2reg}\label{algmem2reg}
+\begin{algorithmic}[1]
+\Procedure{Mem2Reg}{IR instructions $insts$}
+  \State $targets \gets \Call{CollectUses}{insts}$
+  \State \Call{ReplaceInstructions}{$insts, targets$}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+ここではアドレスとして用いられているレジスタを\textbf{アドレスレジスタ}(\textit{address register})と呼ぶ。
+\texttt{LOAD}/\texttt{STORE}命令のアドレスの位置にあるオペランドとして使われているレジスタがアドレスレジスタである。
+
+\textsc{CollectUses}(\cref{algmem2regcollect})でアドレスレジスタのうち、置き換え可能なものを求める。
+ここではアドレスレジスタを\texttt{candidates}に集めながら、\texttt{LOAD}/\texttt{STORE}以外の操作を受けているレジスタを\texttt{excluded}に集めている。
+また、\texttt{STACK\_ADDR}命令で代入されているレジスタを個別に\texttt{in\_stack}に集めている。
+
+さて、置き換え可能なアドレスレジスタは、以下の3条件を満たしているものである。
+\begin{enumerate}
+  \item \label{mem2regenum:1}スタックのアドレスを保持している
+  \item \label{mem2regenum:2}\texttt{LOAD}/\texttt{STORE}以外の操作を受けていない
+  \item \label{mem2regenum:3}置き換え不可能なアドレスレジスタと同じスタック位置を共有していない
+\end{enumerate}
+\cref{mem2regenum:1}, \cref{mem2regenum:2}を満たすアドレスレジスタの集合は、$(\texttt{candidates} - \texttt{excluded}) \cap {\texttt{in\_stack}}$で求められる。\footnote{集合の実装にBit Vectorと呼ばれるデータ構造を使用しており、集合の演算が非常に効率的に行える}
+そして\cref{mem2regenum:3}を満たさないものを除外するために、置き換え不可能なアドレスレジスタのスタック位置の集合を求め、そのあとにそれを共有しているものを除外するというナイーブな方法をとった。
+
+そして、置き換え可能なアドレスレジスタが求められたのち、\textsc{ReplaceInstructions}(\cref{algmem2regreplace})で命令をレジスタを使うように書き換えている。
+
+\begin{algorithm}
+\caption{Collecting uses of address registers}\label{algmem2regcollect}
+\begin{algorithmic}[1]
+\Function{CollectUses}{list of IR instructions $insts$}
+  \State $candidates, excluded, in\_stack \gets \emptyset$
+  \ForAll{instruction $inst$ in $insts$}
+    \If{$inst$ is \texttt{STACK\_ADDR}}
+      \State $in\_stack \gets in\_stack \cup{ \{inst.rd\} }$
+      \State $assoc\_areas[inst.rd] \gets inst.stack\_idx$
+    \ElsIf{$inst$ is \texttt{LOAD}}
+      \State $candidates \gets candidates \cup{ \{inst.ra[0]\} }$
+      \State $excluded \gets excluded \cup{ \{inst.rd\} }$
+    \ElsIf{$inst$ is \texttt{STORE}}
+      \State $candidates \gets candidates \cup{ \{inst.ra[0]\} }$
+      \State $excluded \gets excluded \cup{ \{inst.ra[1]\} }$
+    \Else
+      \ForAll{register $r$ in $inst.ra$}
+        \State $excluded \gets excluded \cup{ \{r\} }$
+      \EndFor
+      \If{$inst$ has $inst.rd$}
+        \State $excluded \gets excluded \cup{ \{inst.rd\} }$
+      \EndIf
+    \EndIf
+  \EndFor
+  \State \textbf{return} \Call{ComputeReplaceable}{$candidates, excluded, in\_stack$}
+\EndFunction
+\Function{ComputeReplaceable}{set of registers $candidates$, $excluded$, $in\_stack$}
+  \State $replaceable \gets (candidates - excluded) \cap {in\_stack}$
+  \State $ex\_areas \gets \emptyset$
+  \ForAll {register $r$ in $\overline{replaceable}$}
+    \If{$r$ found in $assoc\_areas$}
+      \State $s \gets assoc\_areas[r]$
+      \State $ex\_areas \gets ex\_areas \cup{\{s\}}$
+    \EndIf
+  \EndFor
+  \ForAll {register $r$ in $replaceable$}
+    \State $s \gets assoc\_areas[r]$
+    \If{$s\in{ex\_areas}$}
+      \State $replaceable \gets replaceable - \{r\}$
+    \Else
+      \If{$s$ not found in $replaced\_regs$}
+        \State $replaced\_regs[s] \gets$ new replacement register
+      \EndIf
+    \EndIf
+  \EndFor
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Replace instructions}\label{algmem2regreplace}
+\begin{algorithmic}[1]
+\Procedure{ReplaceInstructions}{list of IR instructions $insts$, set of registers $targets$}
+  \ForAll{instruction $inst$ in $insts$}
+    \If{$inst$ is \texttt{STACK\_ADDR}}
+      \If{$inst.rd\in{targets}$}
+        \State remove $inst$ from $insts$
+      \EndIf
+    \ElsIf{$inst$ is \texttt{LOAD}}
+      \If{$inst.ra[0]\in{targets}$}
+        \State $s \gets assoc\_areas[inst.ra[0]]$
+        \State $r \gets replaced\_regs[s]$
+        \State replace $inst$ with \texttt{'$inst.rd$ = MOVE $r$'} in $insts$
+      \EndIf
+    \ElsIf{$inst$ is \texttt{STORE}}
+      \If{$inst.ra[0]\in{targets}$}
+        \State $s \gets assoc\_areas[inst.ra[0]]$
+        \State $r \gets replaced\_regs[s]$
+        \State replace $inst$ with \texttt{'$r$ = MOVE $inst.ra[1]$'} in $insts$
+      \EndIf
+    \EndIf
+  \EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\cref{ccc_mem2reg_fig}にこの最適化による変形の例を示す。一部のスタックに対する操作がレジスタに置き換わっていることが見て取れる。
+この最適化による出力コードの効率の変化については\cref{ccc_performance}で検討する。
+
+\begin{figure}[h]
+  \begin{minipage}{0.50\hsize}
+    \centering
+    \input{figures/before_mem2reg.gv}
+    \caption*{最適化前}
+  \end{minipage}
+  \begin{minipage}{0.50\hsize}
+    \centering
+    \input{figures/after_mem2reg.gv}
+    \caption*{最適化後}
+  \end{minipage}
+  \caption{mem2reg最適化前後のIRの変化例}
+  \label{ccc_mem2reg_fig}
+\end{figure}
+
+\end{document}

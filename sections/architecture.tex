@@ -1,0 +1,97 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+cccコンパイラはCのソースコードを受け取りアセンブリのコードを出力する。cccではワンパスでは行えないと思われる変形や最適化を用いているため、コンパイルの段階に応じて複数の中間表現を用いている。
+
+一つ目の中間表現が\textbf{抽象構文木}(\textit{Abstract Syntax Tree, AST})だ。これは構文解析の結果を木構造で表現したもので、この上で意味解析が行われる。
+もう一つの中間表現は\textbf{IR}と名付けた\footnote{もちろんIntermediate Representationなのだが、中間表現全体を指すわけではなく特定の段階の中間表現を指して\textbf{IR}と呼んでいる。「名付けた」と言っているのもそのためである。}。これはASTよりもアセンブリに近い構造を持っており、この上で最適化やレジスタ割り当てが行われる。IRについて\cref{ccc_ir}で詳しく説明している。
+
+\clearpage
+
+\begin{figure}[!ht]
+  \begin{center}
+    \digraph[scale=0.77]{cccarch}{
+      graph [
+        newrank = true;
+        splines = ortho;
+        nodesep = 0.3;
+        ranksep = 0.3;
+      ];
+      node [
+        style = filled;
+        fillcolor = white;
+        height = 0.3;
+        width = 1.5;
+        fixedsize = true;
+        fontsize = 10;
+      ];
+
+      start [shape=ellipse, group=f, label="Input File"];
+
+      start -> source;
+      subgraph cluster_0 {
+        style = "dashed, filled";
+        fillcolor = lightgrey;
+        color = black;
+        label = "front end";
+        labeljust = l;
+
+        source  [shape=parallelogram, group=f, label="C Source"];
+        tokenize  [shape=box, group=f, label="Tokenize"];
+        tokens  [shape=parallelogram, group=f, label="Tokens"];
+        parse  [shape=box, group=f, label="Parse"];
+        ast1  [shape=parallelogram, group=f, label="AST"];
+        sema  [shape=box, group=f, label="Semantic Analysis"];
+        ast2  [shape=parallelogram, group=f, label="AST"];
+
+        source -> tokenize -> tokens -> parse -> ast1 -> sema -> ast2  [weight=10];
+      }
+      ast2 -> irgen [weight=0];
+
+      subgraph cluster_1 {
+        style = "dashed, filled";
+        fillcolor = lightgrey;
+        color = black;
+        label = "back end";
+        labeljust = l;
+
+        irgen [shape=box, group=b1, label="IR Generation"];
+        ir1 [shape=parallelogram, group=b1, label="IR"];
+        mem2reg [shape=box, group=b1, label="Mem2Reg"];
+        ir2 [shape=parallelogram, group=b1, label="IR"];
+        arch [shape=box, group=b1, label="Target Conversion"];
+        ir3 [shape=parallelogram, group=b1, label="IR"];
+        liveness [shape=box, group=b2, label="Liveness Analysis"];
+        ir4 [shape=parallelogram, group=b2, label="IR"];
+        regalloc [shape=box, group=b2, label="Register Allocation"];
+        ir5 [shape=parallelogram, group=b2, label="IR"];
+        codegen [shape=box, group=b2, label="Code Generation"];
+        asm [shape=parallelogram, group=b2, label="x64 Assembly"];
+
+        irgen -> ir1 -> mem2reg -> ir2 -> arch -> ir3  [weight=10];
+        ir3 -> liveness [weight=0];
+        liveness -> ir4 -> regalloc -> ir5 -> codegen -> asm [weight=10];
+
+      }
+      asm -> end;
+
+      end [shape=oval, group=b2, label="Output"];
+
+      { rank=same; tokenize -> irgen -> liveness [style=invis]; }
+    }
+    \caption{cccコンパイラ全体の構成}
+    \label{ccc_arch}
+  \end{center}
+\end{figure}
+
+\cref{ccc_arch}はコンパイラ全体の構成を表している。cccコンパイラの内部パスはソースコードからASTを扱う\textbf{フロントエンド}(\textit{front end})と、IRを扱う\textbf{バックエンド}(\textit{back end})に概念上分類することができる。
+フロントエンドではソースコードに対して字句解析と構文解析を行ってASTを生成し、ASTの上で意味解析を行ったのちIRを生成する。バックエンドは生成されたIRの上でコード変形や最適化を行い、最終的に一般的なアセンブラで処理可能な形式のx86\_64アセンブリを生成する。
+
+なお、バックエンドは今日ではLLVM\cite{TheLLVM}に代表されるようなコンパイラ基盤で置き換える事ができる。
+しかしcccでは低レイヤ・オタク特有のいわゆる``一から作りたい欲求''に身を任せ、バックエンドを既存のフレームワークを使用せずに自作している。
+この記事では主にcccコンパイラのバックエンドに焦点を絞って説明する。
+
+この記事では構文解析に代表されるようなフロントエンドについては説明しない。理論的な側面については\cite{av2009コンパイラ}が詳しい。また、フロントエンドに限らないが、実装から入る場合は\cite{ruicompilerbook}が非常に良いオンラインブックであるとして有名である。
+
+\end{document}
