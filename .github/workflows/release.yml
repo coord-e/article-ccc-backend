@@ -18,6 +18,7 @@ jobs:
           mkdir dist
           mv main.pdf dist/$PDF_NAME
           sudo git clean -fdx -e dist/
+          rm -rf .git
       - uses: actions/upload-artifact@v1
         with:
           name: archive
