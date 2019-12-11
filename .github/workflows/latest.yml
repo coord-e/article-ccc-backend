@@ -13,7 +13,7 @@ jobs:
         run: |
           mkdir dist
           mv main.pdf dist/
-          git clean -fdx -e dist/
+          sudo git clean -fdx -e dist/
       - uses: actions/upload-artifact@v1
         with:
           name: archive
