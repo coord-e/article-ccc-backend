@@ -4,7 +4,7 @@
 
 ここでは\cref{ccc_arch}で「Target Conversion」と表記されている変換について説明する。
 
-アーキテクチャやABI(ここでは二つをまとめてターゲットと呼ぶ)によっては、命令がある決まったレジスタを使用することがある。
+アーキテクチャやABI(ここでは二つをまとめて\textbf{ターゲット}と呼ぶ)によっては、命令がある決まったレジスタを使用することがある。
 例えばx86\_64アーキテクチャ\cite{guide2011intel}において除算命令\texttt{div}は被除数を\texttt{rax}にとり、商を\texttt{rax}に格納する。
 またSystem V ABI\cite{SystemV}において\texttt{call}命令は\texttt{rdi, rsi, rdx, rcx, r8, r9}に引数をとり戻り値を\texttt{rax}を格納する。
 こういった特別に扱われるレジスタをここでは\textbf{特殊レジスタ}と呼ぶ。
