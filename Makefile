@@ -1,4 +1,4 @@
-IMAGE_NAME := coorde/ccc-intro-docs
+IMAGE_NAME := coorde/article-ccc-backend
 
 SUDO :=
 DOCKER := $(SUDO) docker
