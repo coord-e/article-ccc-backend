@@ -3,7 +3,8 @@
 \begin{document}
 
 IRは出力先のネイティブコードに近い構造を持つように設計した。IR内では関数が単位となっており\footnote{翻訳単位に対応するIRは、翻訳単位内で定義された複数の関数IRが集まったものである}、これを\textbf{関数IR}と呼ぶことにする。IRに対する操作も基本的に関数IR単位で行われる。
-関数IRはメタデータを除けばIR命令の列である。IR命令列は\textbf{基本ブロック}(\textit{basic block})に分割されており、各基本ブロックは\textbf{後続節}(\textit{predecessors})と\textbf{先行節}(\textit{successors})の情報を保持している。
+関数IRはメタデータを除けば\textbf{IR命令}(\textit{IR instruction})の列である。IR命令は命令の種類である\textbf{オペコード}(\textit{opcode})\footnote{ここでは``命令の種類''の意味で使っており、cccのIRで各命令に対応する自然数があるというわけではない}と命令の引数である\textbf{オペランド}(\textit{operand})で構成されている。
+また、IR命令列は\textbf{基本ブロック}(\textit{basic block})に分割されており、各基本ブロックは\textbf{後続節}(\textit{predecessors})と\textbf{先行節}(\textit{successors})の情報を保持している。
 これらの情報から基本ブロックは\textbf{制御フローグラフ}(\textit{Control Flow Graph, CFG})を構成する(\cref{ccc_cfg_fig})。
 
 IR命令はレジスタをオペランドにとる。cccのIR上のレジスタには以下の3つの種類がある。
@@ -16,7 +17,7 @@ IR命令はレジスタをオペランドにとる。cccのIR上のレジスタ�
 IRを表す図中では、n番目の仮想レジスタを\texttt{v}$n$、n番目の物理レジスタを\texttt{r}$n$、\texttt{r}$n$に割り当てられる$m$番目の固定レジスタは\texttt{f(v$m$:r$n$)}と表記する。
 
 さて、IR命令の命令セットを\cref{tb:ccc_isa}に示す。
-なお、今後の表やアルゴリズムでは命令の出力オペランドを$rd$、n番目の入力オペランドを$ra[n]$と表記する。
+なお、今後の表やアルゴリズムでは命令の出力オペランドを$rd$、n番目の入力オペランドを$ra[n]$と表記する。\footnote{入力オペランドの表記として\texttt{rs}が一般的だと気づいたのはある程度cccを実装し終えた後でした\ldots}
 
 表には記載がないが、これらの他に\texttt{BIN\_IMM}といった片方のオペランドに定数をとる命令や\texttt{BR\_CMP}といった複合命令が実装されている。これらは主にレジスタ上のデータの流れを用いた最適化である\textbf{データフロー最適化}で効率的なアセンブリを出力するために用いている。
 
